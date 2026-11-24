@@ -54,9 +54,10 @@ html, body {
   gap: 12px;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 200ms var(--ease-out);
+  visibility: hidden; /* kapalıyken içindeki düğmeye basılamasın */
+  transition: opacity 200ms var(--ease-out), visibility 0s linear 200ms;
 }
-.hud[data-open="true"] { opacity: 1; }
+.hud[data-open="true"] { opacity: 1; visibility: visible; transition: opacity 200ms var(--ease-out), visibility 0s; }
 
 .score {
   display: flex;
@@ -272,12 +273,33 @@ h1, h2 {
 .lang:focus-visible { outline: 4px solid var(--navy); outline-offset: 2px; }
 @media (max-height: 380px) { .extras { margin-top: 4px; } .lang { min-height: 36px; padding: 2px 10px; } }
 
+/* Oyun sırasında listeye dönüş düğmesi (yalnızca açık sitede) */
+.hud-home {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 3px solid var(--navy);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--navy);
+  pointer-events: auto;
+  touch-action: manipulation;
+  transition: transform 140ms var(--ease-out);
+}
+.hud-home svg { width: 24px; height: 24px; display: block; }
+.hud-home:active { transform: scale(0.94); }
+.hud-home:focus-visible { outline: 4px solid var(--navy); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .hud-home, .hud-home:active { transition: none; transform: none; } }
+
 </style>
 </head>
 <body>
 <canvas id="stage" aria-hidden="true"></canvas>
 
-<div class="hud" id="hud" data-open="false" aria-hidden="true">
+<div class="hud" id="hud" data-open="false">
+  <a class="hud-home" href="../" aria-label="All games"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.2 12 3.5l9 7.7M5.5 9.6V20h4.7v-5.6h3.6V20h4.7V9.6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
   <div class="score"><span class="score-dot"></span><span id="hudScore">0</span></div>
   <div class="timebar"><div class="timebar-fill" id="timeFill"></div></div>
 </div>
@@ -806,6 +828,8 @@ window.PP = (function () {
       btnAgain.textContent = T.again;
       var homes = document.querySelectorAll('.home');
       for (var i = 0; i < homes.length; i++) homes[i].textContent = T.home;
+      var hudHome = document.querySelector('.hud-home');
+      if (hudHome) { hudHome.setAttribute('aria-label', T.home); hudHome.title = T.home; }
       var mb = el('menuBest');
       if (best > 0) { mb.textContent = T.best.replace('{n}', best); mb.hidden = false; } else { mb.hidden = true; }
     }
