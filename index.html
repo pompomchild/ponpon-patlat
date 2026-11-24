@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>Ponpon Patlat</title>
+<title>Pop the Pompoms</title>
 <!-- Playables SDK oyun kodundan önce yüklenmek zorunda. -->
 <script src="https://www.youtube.com/game_api/v1"></script>
 <style>
@@ -253,6 +253,25 @@ h1, h2 {
 .home:focus-visible { outline: 4px solid var(--navy); outline-offset: 2px; }
 @media (max-height: 380px) { .home { margin-top: 4px; padding: 4px 12px; } }
 
+/* Dil seçici (yalnızca açık sitede) */
+.extras { margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 14px; }
+.extras .home { margin: 0; }
+.lang {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 6px 12px;
+  border: 3px solid var(--navy);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--navy);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.lang:focus-visible { outline: 4px solid var(--navy); outline-offset: 2px; }
+@media (max-height: 380px) { .extras { margin-top: 4px; } .lang { min-height: 36px; padding: 2px 10px; } }
+
 </style>
 </head>
 <body>
@@ -273,7 +292,7 @@ h1, h2 {
     <p class="lead" id="tLead"></p>
     <p class="best" id="menuBest" hidden></p>
     <button class="btn" id="btnPlay" type="button"></button>
-    <a class="home" href="../">Tüm oyunlar</a>
+    <div class="extras"><a class="home" href="../">All games</a><select class="lang" id="lang" aria-label="Language"></select></div>
   </div>
 </div>
 
@@ -283,7 +302,7 @@ h1, h2 {
     <p class="result"><span class="result-num" id="overScore">0</span><span class="result-label" id="tScoreLabel"></span></p>
     <p class="best" id="overBest"></p>
     <button class="btn" id="btnAgain" type="button"></button>
-    <a class="home" href="../">Tüm oyunlar</a>
+    <a class="home" href="../">All games</a>
   </div>
 </div>
 
@@ -755,10 +774,12 @@ window.PP = (function () {
     // ---------- Başlangıç ----------
     function pickLanguage() {
       if (!inYT) {
-        // Açık sitede ?lang=xx ile dil seçilebilir; Playables içinde yalnızca YouTube'un dili kullanılır.
-        var forced = null;
-        try { forced = new URLSearchParams(window.location.search).get('lang'); } catch (e) { /* yok say */ }
-        return Promise.resolve(forced || navigator.language || 'en');
+        // Açık sitede dil: ?lang=xx, yoksa dil seçicide kayıtlı seçim, yoksa İngilizce.
+        // Playables içinde yalnızca YouTube'un dili kullanılır.
+        var chosen = null;
+        try { chosen = new URLSearchParams(window.location.search).get('lang'); } catch (e) { /* yok say */ }
+        if (!chosen) { try { chosen = window.localStorage.getItem('pp-lang'); } catch (e) { /* yok say */ } }
+        return Promise.resolve(chosen || 'en');
       }
       try { return yt.system.getLanguage().catch(function () { return 'en'; }); } catch (e) { return Promise.resolve('en'); }
     }
@@ -774,6 +795,8 @@ window.PP = (function () {
       T = (window.PP_TEXT || {})[lang] || {};
       document.documentElement.lang = lang === 'zh' ? 'zh-Hans' : lang;
       document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+      var picker = el('lang');
+      if (picker) picker.value = lang;
       document.title = T.title;
       el('tTitle').textContent = T.title;
       el('tLead').textContent = T.lead;
@@ -786,6 +809,22 @@ window.PP = (function () {
       var mb = el('menuBest');
       if (best > 0) { mb.textContent = T.best.replace('{n}', best); mb.hidden = false; } else { mb.hidden = true; }
     }
+
+    // Dil seçici yalnızca açık site kopyasında bulunur.
+    (function () {
+      var picker = el('lang');
+      if (!picker) return;
+      var names = [["en","English"],["tr","Türkçe"],["es","Español"],["pt","Português"],["fr","Français"],["de","Deutsch"],["it","Italiano"],["ru","Русский"],["uk","Українська"],["pl","Polski"],["nl","Nederlands"],["id","Bahasa Indonesia"],["vi","Tiếng Việt"],["th","ไทย"],["ja","日本語"],["ko","한국어"],["zh","中文"],["ar","العربية"],["hi","हिन्दी"],["bn","বাংলা"]];
+      for (var i = 0; i < names.length; i++) {
+        var o = document.createElement('option');
+        o.value = names[i][0]; o.textContent = names[i][1]; o.lang = names[i][0];
+        picker.appendChild(o);
+      }
+      picker.addEventListener('change', function () {
+        try { window.localStorage.setItem('pp-lang', picker.value); } catch (e) { /* yok say */ }
+        applyText(picker.value);
+      });
+    })();
 
     window.addEventListener('resize', resize);
     btnPlay.addEventListener('click', begin);
